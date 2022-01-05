@@ -25,7 +25,9 @@ def generate_launch_description():
         package='vectornav', 
         executable='vn_sensor_msgs',
         output='screen',
-        parameters=[os.path.join(this_dir, 'config', 'vectornav.yaml')])
+        parameters=[os.path.join(this_dir, 'config', 'vectornav.yaml')],
+        remappings=[('vectornav/imu', 'imu/data'),
+                    ('vectornav/gnss', 'gps/fix')])
 
     # Create the launch description and populate
     ld = LaunchDescription()

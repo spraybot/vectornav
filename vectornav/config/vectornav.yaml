@@ -49,7 +49,7 @@ vectornav:
       attitudeField: 0
       insField: 0
       gps2Field: 0
-    frame_id: vectornav
+    frame_id: imu_link
 vn_sensor_msgs:
   ros__parameters:
     dynamic_uncertanity: true
