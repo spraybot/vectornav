@@ -1,92 +1,113 @@
 vectornav:
   ros__parameters:
-    port: "/dev/ttyUSB0"
+    port: /dev/ttyUSB0
     baud: 115200
     reconnect_ms: 500
-    # Reference vnproglib-1.2.0.0 headers for enum definitions
-    # Async Output Type (ASCII)
-    AsyncDataOutputType: 0           # VNOFF
-    # Async output Frequency (Hz)
+    AsyncDataOutputType: 0
     AsyncDataOutputFrequency: 20
-    # Sync control
-    syncInMode: 3                    # SYNCINMODE_COUNT
-    syncInEdge: 0                    # SYNCINEDGE_RISING
+    syncInMode: 3
+    syncInEdge: 0
     syncInSkipFactor: 0
-    syncOutMode: 0                   # SYNCOUTMODE_NONE
-    syncOutPolarity: 0               # SYNCOUTPOLARITY_NEGATIVE
+    syncOutMode: 0
+    syncOutPolarity: 0
     syncOutSkipFactor: 0
     syncOutPulseWidth_ns: 100000000
-    # Communication protocol control
-    serialCount: 0                   # COUNTMODE_NONE
-    serialStatus: 0                  # STATUSMODE_OFF
-    spiCount: 0                      # COUNTMODE_NONE
-    spiStatus: 0                     # STATUSMODE_OFF
-    serialChecksum: 1                # CHECKSUMMODE_CHECKSUM
-    spiChecksum: 0                   # CHECKSUMMODE_OFF
-    errorMode: 1                     # ERRORMODE_SEND
-    # Binary output register 1
+    serialCount: 0
+    serialStatus: 0
+    spiCount: 0
+    spiStatus: 0
+    serialChecksum: 1
+    spiChecksum: 0
+    errorMode: 1
     BO1:
-      asyncMode: 3                   # ASYNCMODE_BOTH
-      rateDivisor: 40                # 20 Hz
-      commonField: 0x7FFF
-      timeField: 0x0000              # TIMEGROUP_NONE
-      imuField: 0x0000               # IMUGROUP_NONE
-      # set gpsField directly in source to enforce or condition
-      attitudeField: 0x0000          # ATTITUDEGROUP_NONE
-      # set insField directly in source to enforce or condition
-      gps2Field: 0x0000              # GPSGROUP_NONE
-    # Binary output register 2
+      asyncMode: 3
+      rateDivisor: 40
+      commonField: 32767
+      timeField: 0
+      imuField: 0
+      attitudeField: 0
+      gps2Field: 0
     BO2:
-      asyncMode: 0                   # ASYNCMODE_NONE
+      asyncMode: 0
       rateDivisor: 0
-      commonField: 0x0000            # COMMONGROUP_NONE
-      timeField: 0x0000              # TIMEGROUP_NONE
-      imuField: 0x0000               # IMUGROUP_NONE
-      gpsField: 0x0000               # GPSGROUP_NONE
-      attitudeField: 0x0000          # ATTITUDEGROUP_NONE
-      insField: 0x0000               # INSGROUP_NONE
-      gps2Field: 0x0000              # GPSGROUP_NONE
-    # Binary output register 3
+      commonField: 0
+      timeField: 0
+      imuField: 0
+      gpsField: 0
+      attitudeField: 0
+      insField: 0
+      gps2Field: 0
     BO3:
-      asyncMode: 0                   # ASYNCMODE_NONE
+      asyncMode: 0
       rateDivisor: 0
-      commonField: 0x0000            # COMMONGROUP_NONE
-      timeField: 0x0000              # TIMEGROUP_NONE
-      imuField: 0x0000               # IMUGROUP_NONE
-      gpsField: 0x0000               # GPSGROUP_NONE
-      attitudeField: 0x0000          # ATTITUDEGROUP_NONE
-      insField: 0x0000               # INSGROUP_NONE
-      gps2Field: 0x0000              # GPSGROUP_NONE
-    frame_id: "vectornav"
-
+      commonField: 0
+      timeField: 0
+      imuField: 0
+      gpsField: 0
+      attitudeField: 0
+      insField: 0
+      gps2Field: 0
+    frame_id: vectornav
 vn_sensor_msgs:
   ros__parameters:
     dynamic_uncertanity: true
-    # Datasheet values are based on ideal conditions
-    # Might be a good idea to inflate the values
-    # Based on datasheet
-    # Heading Magnetic: 2.0° RMS
-    # Pitch/Roll (Static): 0.5° RMS
-    orientation_covariance: [0.00121847072,  0.0,   0.0,
-                             0.0,   0.00007615442,  0.0,
-                             0.0,   0.0,   0.00007615442]
-    # Based on datasheet
-    # Horizontal Position Accuracy: 1.0m RMS
-    # Vertical Position Accuracy: 1.5m RMS
-    position_covariance: [1.0,  0.0,      0.0,
-                          0.0,   1.0,   0.0,
-                          0.0,   0.0,   2.25]
-    # Based on datasheet
-    # Velocity Accuracy: < 0.05m/s
-    velocity_covariance: [0.0025,  0.0,      0.0,
-                          0.0,   0.0025,   0.0,
-                          0.0,   0.0,   0.0025]
-    angular_velocity_covariance: [0.01,  0.0,   0.0,
-                         0.0,   0.01,  0.0,
-                         0.0,   0.0,   0.01]
-    linear_acceleration_covariance: [0.01,  0.0,   0.0,
-                         0.0,   0.01,  0.0,
-                         0.0,   0.0,   0.01]
-    magnetic_field_covariance: [0.01,  0.0,   0.0,
-                         0.0,   0.01,  0.0,
-                         0.0,   0.0,   0.01]
+    orientation_covariance:
+      - 0.00121847072
+      - 0
+      - 0
+      - 0
+      - 0.00007615442
+      - 0
+      - 0
+      - 0
+      - 0.00007615442
+    position_covariance:
+      - 1
+      - 0
+      - 0
+      - 0
+      - 1
+      - 0
+      - 0
+      - 0
+      - 2.25
+    velocity_covariance:
+      - 0.0025
+      - 0
+      - 0
+      - 0
+      - 0.0025
+      - 0
+      - 0
+      - 0
+      - 0.0025
+    angular_velocity_covariance:
+      - 0.01
+      - 0
+      - 0
+      - 0
+      - 0.01
+      - 0
+      - 0
+      - 0
+      - 0.01
+    linear_acceleration_covariance:
+      - 0.01
+      - 0
+      - 0
+      - 0
+      - 0.01
+      - 0
+      - 0
+      - 0
+      - 0.01
+    magnetic_field_covariance:
+      - 0.01
+      - 0
+      - 0
+      - 0
+      - 0.01
+      - 0
+      - 0
+      - 0
+      - 0.01
