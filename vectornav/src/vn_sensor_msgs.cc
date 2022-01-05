@@ -42,13 +42,23 @@ public:
   VnSensorMsgs() : Node("vn_sensor_msgs")
   {
     // Parameters
-    declare_parameter<std::vector<double>>("orientation_covariance", orientation_covariance_);
-    declare_parameter<std::vector<double>>(
-      "angular_velocity_covariance", angular_velocity_covariance_);
-    declare_parameter<std::vector<double>>(
-      "linear_acceleration_covariance", linear_acceleration_covariance_);
-    declare_parameter<std::vector<double>>("magnetic_covariance", magnetic_field_covariance_);
+    declare_parameter<bool>("dynamic_uncertanity", false);
 
+    declare_parameter<std::vector<double>>("orientation_covariance");
+    declare_parameter<std::vector<double>>("position_covariance");
+    declare_parameter<std::vector<double>>("velocity_covariance");
+    declare_parameter<std::vector<double>>("angular_velocity_covariance");
+    declare_parameter<std::vector<double>>("linear_acceleration_covariance");
+    declare_parameter<std::vector<double>>("magnetic_field_covariance");
+
+    get_parameter("dynamic_uncertanity", dynamic_uncertanity_);
+
+    fill_covariance_from_param("orientation_covariance", orientation_covariance_);
+    fill_covariance_from_param("position_covariance", position_covariance_);
+    fill_covariance_from_param("velocity_covariance", velocity_covariance_);
+    fill_covariance_from_param("angular_velocity_covariance", angular_velocity_covariance_);
+    fill_covariance_from_param("linear_acceleration_covariance", linear_acceleration_covariance_);
+    fill_covariance_from_param("magnetic_field_covariance", magnetic_field_covariance_);
     //
     // Publishers
     //
@@ -183,10 +193,9 @@ private:
       msg.angular_velocity = msg_in->angularrate;
       msg.linear_acceleration = msg_in->accel;
 
-      fill_covariance_from_param("orientation_covariance", msg.orientation_covariance);
-      fill_covariance_from_param("angular_velocity_covariance", msg.angular_velocity_covariance);
-      fill_covariance_from_param(
-        "linear_acceleration_covariance", msg.linear_acceleration_covariance);
+      msg.orientation_covariance = orientation_covariance_;
+      msg.angular_velocity_covariance = angular_velocity_covariance_;
+      msg.linear_acceleration_covariance = linear_acceleration_covariance_;
 
       pub_imu_->publish(msg);
     }
@@ -211,7 +220,7 @@ private:
       msg.header = msg_in->header;
       msg.magnetic_field = msg_in->magpres_mag;
 
-      fill_covariance_from_param("magnetic_covariance", msg.magnetic_field_covariance);
+      msg.magnetic_field_covariance = magnetic_field_covariance_;
 
       pub_magnetic_->publish(msg);
     }
@@ -254,9 +263,9 @@ private:
       msg.altitude = msg_in->position.z;
 
       // Covariance (Convert NED to ENU)
+      // Conversion currently not necessary since all values are the same
       /// TODO(Dereck): Use DOP for better estimate?
-      const std::vector<double> orientation_covariance_ = {
-        gps_posu_.y, 0.0000, 0.0000, 0.0000, gps_posu_.x, 0.0000, 0.0000, 0.0000, gps_posu_.z};
+      msg.position_covariance = position_covariance_;
 
       msg.position_covariance_type = sensor_msgs::msg::NavSatFix::COVARIANCE_TYPE_DIAGONAL_KNOWN;
 
@@ -270,8 +279,12 @@ private:
       msg.twist.twist.linear = ins_velbody_;
       msg.twist.twist.angular = msg_in->angularrate;
 
-      /// TODO(Dereck): Velocity Covariance
-
+      msg.twist.covariance[0] = velocity_covariance_[0];
+      msg.twist.covariance[7] = velocity_covariance_[4];
+      msg.twist.covariance[14] = velocity_covariance_[8];
+      msg.twist.covariance[21] = angular_velocity_covariance_[0];
+      msg.twist.covariance[28] = angular_velocity_covariance_[4];
+      msg.twist.covariance[35] = angular_velocity_covariance_[8];
       pub_velocity_->publish(msg);
     }
 
@@ -323,7 +336,16 @@ private:
   /** Convert VN attitude group data to ROS2 standard message types
    *
    */
-  void sub_vn_attitude(const vectornav_msgs::msg::AttitudeGroup::SharedPtr msg_in) const {}
+  void sub_vn_attitude(const vectornav_msgs::msg::AttitudeGroup::SharedPtr msg_in) {
+    if (dynamic_uncertanity_) {
+      double r_u = deg2rad(msg_in->ypru.z);
+      double p_u = deg2rad(msg_in->ypru.y);
+      double y_u = deg2rad(msg_in->ypru.x);
+      orientation_covariance_[0] = r_u * r_u;
+      orientation_covariance_[4] = p_u * p_u;
+      orientation_covariance_[8] = y_u * y_u;
+    }
+  }
 
   /** Convert VN ins group data to ROS2 standard message types
    *
@@ -332,6 +354,18 @@ private:
   {
     ins_velbody_ = msg_in->velbody;
     ins_posecef_ = msg_in->posecef;
+
+    if (dynamic_uncertanity_) {
+      double posu_sq = msg_in->posu * msg_in->posu;
+      position_covariance_[0] = posu_sq;
+      position_covariance_[4] = posu_sq;
+      position_covariance_[8] = posu_sq;
+
+      double velu_sq = msg_in->velu * msg_in->velu;
+      velocity_covariance_[0] = velu_sq;
+      velocity_covariance_[4] = velu_sq;
+      velocity_covariance_[8] = velu_sq;
+    }
   }
 
   /** Convert VN gps2 group data to ROS2 standard message types
@@ -407,21 +441,15 @@ private:
   rclcpp::Subscription<vectornav_msgs::msg::InsGroup>::SharedPtr sub_vn_ins_;
   rclcpp::Subscription<vectornav_msgs::msg::GpsGroup>::SharedPtr sub_vn_gps2_;
 
-  /// Default orientation Covariance
-  const std::vector<double> orientation_covariance_ = {0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
-                                                       0.0000, 0.0000, 0.0000, 0.0000};
+  // Parameters
+  bool dynamic_uncertanity_;
 
-  /// Default angular_velocity Covariance
-  const std::vector<double> angular_velocity_covariance_ = {0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
-                                                            0.0000, 0.0000, 0.0000, 0.0000};
-
-  /// Default linear_acceleration Covariance
-  const std::vector<double> linear_acceleration_covariance_ = {
-    0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000};
-
-  /// Default magnetic field Covariance
-  const std::vector<double> magnetic_field_covariance_ = {0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
-                                                          0.0000, 0.0000, 0.0000, 0.0000};
+  std::array<double, 9> orientation_covariance_{};
+  std::array<double, 9> position_covariance_{};
+  std::array<double, 9> velocity_covariance_{};
+  std::array<double, 9> angular_velocity_covariance_{};
+  std::array<double, 9> linear_acceleration_covariance_{};
+  std::array<double, 9> magnetic_field_covariance_{};
 
   /// TODO(Dereck): Find default covariance values
 

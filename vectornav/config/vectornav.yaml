@@ -61,15 +61,32 @@ vectornav:
 
 vn_sensor_msgs:
   ros__parameters:
-    orientation_covariance: [0.01,  0.0,   0.0,
-                            0.0,   0.01,  0.0,
-                            0.0,   0.0,   0.01]
+    dynamic_uncertanity: true
+    # Datasheet values are based on ideal conditions
+    # Might be a good idea to inflate the values
+    # Based on datasheet
+    # Heading Magnetic: 2.0° RMS
+    # Pitch/Roll (Static): 0.5° RMS
+    orientation_covariance: [0.00121847072,  0.0,   0.0,
+                             0.0,   0.00007615442,  0.0,
+                             0.0,   0.0,   0.00007615442]
+    # Based on datasheet
+    # Horizontal Position Accuracy: 1.0m RMS
+    # Vertical Position Accuracy: 1.5m RMS
+    position_covariance: [1.0,  0.0,      0.0,
+                          0.0,   1.0,   0.0,
+                          0.0,   0.0,   2.25]
+    # Based on datasheet
+    # Velocity Accuracy: < 0.05m/s
+    velocity_covariance: [0.0025,  0.0,      0.0,
+                          0.0,   0.0025,   0.0,
+                          0.0,   0.0,   0.0025]
     angular_velocity_covariance: [0.01,  0.0,   0.0,
                          0.0,   0.01,  0.0,
                          0.0,   0.0,   0.01]
     linear_acceleration_covariance: [0.01,  0.0,   0.0,
                          0.0,   0.01,  0.0,
                          0.0,   0.0,   0.01]
-    magnetic_covariance: [0.01,  0.0,   0.0,
+    magnetic_field_covariance: [0.01,  0.0,   0.0,
                          0.0,   0.01,  0.0,
                          0.0,   0.0,   0.01]
