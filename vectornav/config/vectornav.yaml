@@ -1,10 +1,10 @@
 vectornav:
   ros__parameters:
     port: /dev/ttyUSB0
-    baud: 115200
+    baud: 921600
     reconnect_ms: 500
     AsyncDataOutputType: 0
-    AsyncDataOutputFrequency: 20
+    AsyncDataOutputFrequency: 50
     syncInMode: 3
     syncInEdge: 0
     syncInSkipFactor: 0
@@ -20,30 +20,32 @@ vectornav:
     spiChecksum: 0
     errorMode: 1
     BO1:
-      asyncMode: 3
-      rateDivisor: 40
-      commonField: 32767
-      timeField: 0
-      imuField: 0
-      attitudeField: 0
-      gps2Field: 0
-    BO2:
-      asyncMode: 0
-      rateDivisor: 0
-      commonField: 0
+      asyncMode: 1
+      rateDivisor: 16
+      commonField: 7675
       timeField: 0
       imuField: 0
       gpsField: 0
       attitudeField: 0
       insField: 0
       gps2Field: 0
-    BO3:
-      asyncMode: 0
-      rateDivisor: 0
+    BO2:
+      asyncMode: 3
+      rateDivisor: 16
       commonField: 0
       timeField: 0
       imuField: 0
       gpsField: 0
+      attitudeField: 328
+      insField: 1545
+      gps2Field: 0
+    BO3:
+      asyncMode: 3
+      rateDivisor: 160
+      commonField: 0
+      timeField: 0
+      imuField: 0
+      gpsField: 1593
       attitudeField: 0
       insField: 0
       gps2Field: 0
