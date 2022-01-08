@@ -137,6 +137,7 @@ public:
     ///
     /// GPS Configuration (8.2.1)
     /// GPS Antenna A Offset (8.2.2)
+    declare_parameter<std::vector<double>>("gpsAntennaAOffset", {0.0, 0.0, 0.0});
     /// GPS Compass Baseline (8.2.3)
 
     // Message Header
@@ -357,6 +358,11 @@ private:
     configBO3.insField = (vn::protocol::uart::InsGroup)get_parameter("BO3.insField").as_int();
     configBO3.gps2Field = (vn::protocol::uart::GpsGroup)get_parameter("BO3.gps2Field").as_int();
     vs_.writeBinaryOutput3(configBO3);
+
+    // GPS Antenna A Offset
+    // 7.2.2
+    auto antennaAOffset = get_parameter("gpsAntennaAOffset").as_double_array();
+    vs_.writeGpsAntennaOffset({antennaAOffset[0], antennaAOffset[1], antennaAOffset[2]}, true); 
 
     try {
       // GPS Configuration
