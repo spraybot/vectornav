@@ -72,7 +72,8 @@ public:
     pub_time_pps_ =
       this->create_publisher<sensor_msgs::msg::TimeReference>("vectornav/time_pps", 10);
     pub_imu_ = this->create_publisher<sensor_msgs::msg::Imu>("vectornav/imu", 10);
-    pub_gnss_ = this->create_publisher<sensor_msgs::msg::NavSatFix>("vectornav/gnss", 10);
+    pub_gnss_ = this->create_publisher<sensor_msgs::msg::NavSatFix>("vectornav/gnss/ins", 10);
+    pub_gnss_raw_ = this->create_publisher<sensor_msgs::msg::NavSatFix>("vectornav/gnss/raw", 10);
     pub_imu_uncompensated_ =
       this->create_publisher<sensor_msgs::msg::Imu>("vectornav/imu_uncompensated", 10);
     pub_magnetic_ =
@@ -331,6 +332,31 @@ private:
   {
     gps_fix_ = msg_in->fix;
     gps_posu_ = msg_in->posu;
+
+    sensor_msgs::msg::NavSatFix msg;
+    msg.header = msg_in->header;
+
+    // Status
+    if (gps_fix_ == vectornav_msgs::msg::GpsGroup::GPSFIX_NOFIX) {
+      msg.status.status = sensor_msgs::msg::NavSatStatus::STATUS_NO_FIX;
+    } else {
+      msg.status.status = sensor_msgs::msg::NavSatStatus::STATUS_FIX;
+    }
+
+    // Position
+    msg.latitude = msg_in->poslla.x;
+    msg.longitude = msg_in->poslla.y;
+    msg.altitude = msg_in->poslla.z;
+
+    // Covariance (Convert NED to ENU)
+    gps_covariance_[0] = msg_in->posu.y * msg_in->posu.y;
+    gps_covariance_[4] = msg_in->posu.x * msg_in->posu.x;
+    gps_covariance_[8] = msg_in->posu.z * msg_in->posu.z;
+
+    msg.position_covariance = gps_covariance_;
+    msg.position_covariance_type = sensor_msgs::msg::NavSatFix::COVARIANCE_TYPE_DIAGONAL_KNOWN;
+
+    pub_gnss_raw_->publish(msg);
   }
 
   /** Convert VN attitude group data to ROS2 standard message types
@@ -424,7 +450,7 @@ private:
   rclcpp::Publisher<sensor_msgs::msg::TimeReference>::SharedPtr pub_time_syncin_;
   rclcpp::Publisher<sensor_msgs::msg::TimeReference>::SharedPtr pub_time_pps_;
   rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr pub_imu_;
-  rclcpp::Publisher<sensor_msgs::msg::NavSatFix>::SharedPtr pub_gnss_;
+  rclcpp::Publisher<sensor_msgs::msg::NavSatFix>::SharedPtr pub_gnss_, pub_gnss_raw_;
   rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr pub_imu_uncompensated_;
   rclcpp::Publisher<sensor_msgs::msg::MagneticField>::SharedPtr pub_magnetic_;
   rclcpp::Publisher<sensor_msgs::msg::Temperature>::SharedPtr pub_temperature_;
@@ -450,6 +476,7 @@ private:
   std::array<double, 9> angular_velocity_covariance_{};
   std::array<double, 9> linear_acceleration_covariance_{};
   std::array<double, 9> magnetic_field_covariance_{};
+  std::array<double, 9> gps_covariance_{};
 
   /// TODO(Dereck): Find default covariance values
 

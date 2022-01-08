@@ -27,7 +27,8 @@ def generate_launch_description():
         output='screen',
         parameters=[os.path.join(this_dir, 'config', 'vectornav.yaml')],
         remappings=[('vectornav/imu', 'imu/data'),
-                    ('vectornav/gnss', 'gps/fix')])
+                    ('vectornav/gnss/ins', 'gps/fix'),
+                    ('vectornav/gnss/raw', 'gps/fix/raw')])
 
     # Create the launch description and populate
     ld = LaunchDescription()
