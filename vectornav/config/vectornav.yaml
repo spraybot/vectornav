@@ -51,9 +51,9 @@ vectornav:
       gps2Field: 0
     frame_id: imu_link
     gpsAntennaAOffset:
-      - 0.51
       - 0.0
       - 0.0
+      - -0.172
 vn_sensor_msgs:
   ros__parameters:
     dynamic_uncertanity: true
