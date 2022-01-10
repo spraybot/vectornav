@@ -50,7 +50,7 @@ vectornav:
       insField: 0
       gps2Field: 0
     frame_id: imu_link
-    gpsAntennaAOffset:
+    gpsAntennaOffset:
       - 0.0
       - 0.0
       - -0.172

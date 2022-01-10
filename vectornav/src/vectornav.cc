@@ -137,7 +137,7 @@ public:
     ///
     /// GPS Configuration (8.2.1)
     /// GPS Antenna A Offset (8.2.2)
-    declare_parameter<std::vector<double>>("gpsAntennaAOffset", {0.0, 0.0, 0.0});
+    declare_parameter<std::vector<double>>("gpsAntennaOffset", {0.0, 0.0, 0.0});
     /// GPS Compass Baseline (8.2.3)
 
     // Message Header
@@ -361,8 +361,14 @@ private:
 
     // GPS Antenna A Offset
     // 7.2.2
-    auto antennaAOffset = get_parameter("gpsAntennaAOffset").as_double_array();
-    vs_.writeGpsAntennaOffset({antennaAOffset[0], antennaAOffset[1], antennaAOffset[2]}, true); 
+    auto antennaAffset = get_parameter("gpsAntennaOffset").as_double_array();
+    auto gps_offset = vn::math::vec3f{
+      float(antennaAffset[0]), float(antennaAffset[1]), float(antennaAffset[2])
+      };
+    auto current_gps_offset = vs_.readGpsAntennaOffset();
+    if ((current_gps_offset - gps_offset).mag() > 1e-10) {
+      vs_.writeGpsAntennaOffset(gps_offset, true); 
+    }
 
     try {
       // GPS Configuration
@@ -374,7 +380,7 @@ private:
 
       // GPS Offset
       // 8.2.2
-      auto gps_offset = vs_.readGpsAntennaOffset();
+      gps_offset = vs_.readGpsAntennaOffset();
       RCLCPP_INFO(
         get_logger(), "GPS Offset     : (%f, %f, %f)", gps_offset[0], gps_offset[1], gps_offset[2]);
 
