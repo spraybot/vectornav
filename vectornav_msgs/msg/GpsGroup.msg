@@ -49,3 +49,4 @@ uint8                       GPSFIX_NOFIX                    = 0
 uint8                       GPSFIX_TIMEONLY                 = 1
 uint8                       GPSFIX_2D                       = 2
 uint8                       GPSFIX_3D                       = 3
+uint8                       GPSFIX_SBAS                     = 4

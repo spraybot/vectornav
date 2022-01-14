@@ -252,10 +252,17 @@ private:
       msg.header = msg_in->header;
 
       // Status
-      if (gps_fix_ == vectornav_msgs::msg::GpsGroup::GPSFIX_NOFIX) {
-        msg.status.status = sensor_msgs::msg::NavSatStatus::STATUS_NO_FIX;
-      } else {
-        msg.status.status = sensor_msgs::msg::NavSatStatus::STATUS_FIX;
+      switch (gps_fix_) {
+        case vectornav_msgs::msg::GpsGroup::GPSFIX_NOFIX:
+        case vectornav_msgs::msg::GpsGroup::GPSFIX_TIMEONLY:
+          msg.status.status = sensor_msgs::msg::NavSatStatus::STATUS_NO_FIX;
+          break;
+        case vectornav_msgs::msg::GpsGroup::GPSFIX_SBAS:
+          msg.status.status = sensor_msgs::msg::NavSatStatus::STATUS_SBAS_FIX;
+          break;
+        default: 
+          msg.status.status = sensor_msgs::msg::NavSatStatus::STATUS_FIX;
+          break;
       }
 
       // Position
@@ -337,10 +344,17 @@ private:
     msg.header = msg_in->header;
 
     // Status
-    if (gps_fix_ == vectornav_msgs::msg::GpsGroup::GPSFIX_NOFIX) {
-      msg.status.status = sensor_msgs::msg::NavSatStatus::STATUS_NO_FIX;
-    } else {
-      msg.status.status = sensor_msgs::msg::NavSatStatus::STATUS_FIX;
+    switch (gps_fix_) {
+      case vectornav_msgs::msg::GpsGroup::GPSFIX_NOFIX:
+      case vectornav_msgs::msg::GpsGroup::GPSFIX_TIMEONLY:
+        msg.status.status = sensor_msgs::msg::NavSatStatus::STATUS_NO_FIX;
+        break;
+      case vectornav_msgs::msg::GpsGroup::GPSFIX_SBAS:
+        msg.status.status = sensor_msgs::msg::NavSatStatus::STATUS_SBAS_FIX;
+        break;
+      default: 
+        msg.status.status = sensor_msgs::msg::NavSatStatus::STATUS_FIX;
+        break;
     }
 
     // Position
