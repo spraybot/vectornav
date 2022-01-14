@@ -43,6 +43,7 @@ public:
   {
     // Parameters
     declare_parameter<bool>("dynamic_uncertanity", false);
+    declare_parameter<bool>("gravity_removed_accel", false);
 
     declare_parameter<std::vector<double>>("orientation_covariance");
     declare_parameter<std::vector<double>>("position_covariance");
@@ -52,6 +53,7 @@ public:
     declare_parameter<std::vector<double>>("magnetic_field_covariance");
 
     get_parameter("dynamic_uncertanity", dynamic_uncertanity_);
+    get_parameter("gravity_removed_accel", gravity_removed_accel_);
 
     fill_covariance_from_param("orientation_covariance", orientation_covariance_);
     fill_covariance_from_param("position_covariance", position_covariance_);
@@ -124,7 +126,7 @@ private:
   /** Convert VN common group data to ROS2 standard message types
    *
    */
-  void sub_vn_common(const vectornav_msgs::msg::CommonGroup::SharedPtr msg_in) const
+  void sub_vn_common(const vectornav_msgs::msg::CommonGroup::SharedPtr msg_in)
   {
     // RCLCPP_INFO(get_logger(), "Frame ID: '%s'", msg_in->header.frame_id.c_str());
 
@@ -192,7 +194,11 @@ private:
       msg.orientation = toMsg(q_ned2enu * q);
 
       msg.angular_velocity = msg_in->angularrate;
-      msg.linear_acceleration = msg_in->accel;
+      
+      if (!gravity_removed_accel_) {
+        linear_accel_ = msg_in->accel;
+      }
+      msg.linear_acceleration = linear_accel_;
 
       msg.orientation_covariance = orientation_covariance_;
       msg.angular_velocity_covariance = angular_velocity_covariance_;
@@ -385,6 +391,9 @@ private:
       orientation_covariance_[4] = p_u * p_u;
       orientation_covariance_[8] = y_u * y_u;
     }
+    if (gravity_removed_accel_) {
+      linear_accel_ = msg_in->linearaccelbody;
+    }
   }
 
   /** Convert VN ins group data to ROS2 standard message types
@@ -430,13 +439,13 @@ private:
     switch (length) {
       case 1:
         array[0] = covariance[0];
-        array[3] = covariance[0];
+        array[4] = covariance[0];
         array[8] = covariance[0];
         break;
 
       case 3:
         array[0] = covariance[0];
-        array[3] = covariance[1];
+        array[4] = covariance[1];
         array[8] = covariance[3];
         break;
 
@@ -483,6 +492,7 @@ private:
 
   // Parameters
   bool dynamic_uncertanity_;
+  bool gravity_removed_accel_;
 
   std::array<double, 9> orientation_covariance_{};
   std::array<double, 9> position_covariance_{};
@@ -497,6 +507,7 @@ private:
   // State Vars
   uint8_t gps_fix_ = vectornav_msgs::msg::GpsGroup::GPSFIX_NOFIX;
   geometry_msgs::msg::Vector3 gps_posu_;
+  geometry_msgs::msg::Vector3 linear_accel_;
   geometry_msgs::msg::Vector3 ins_velbody_;
   geometry_msgs::msg::Point ins_posecef_;
 };

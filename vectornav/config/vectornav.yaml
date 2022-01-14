@@ -50,6 +50,7 @@ vectornav:
       insField: 0
       gps2Field: 0
     frame_id: imu_link
+    adjust_ros_timestamp: true
     gpsAntennaOffset:
       - 0.0
       - 0.0
@@ -57,6 +58,7 @@ vectornav:
 vn_sensor_msgs:
   ros__parameters:
     dynamic_uncertanity: true
+    gravity_removed_accel: true
     orientation_covariance:
       - 0.00121847072
       - 0.00007615442
