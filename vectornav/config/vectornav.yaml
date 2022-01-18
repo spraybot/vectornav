@@ -1,5 +1,6 @@
 vectornav:
   ros__parameters:
+    autostart: true
     port: /dev/vectornav
     baud: 921600
     reconnect_ms: 500

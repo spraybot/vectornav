@@ -11,9 +11,12 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <vector>
 
 // ROS2
 #include "rclcpp/rclcpp.hpp"
+#include "rclcpp_lifecycle/lifecycle_node.hpp"
+#include "rclcpp_lifecycle/lifecycle_publisher.hpp"
 #include "vectornav_msgs/msg/attitude_group.hpp"
 #include "vectornav_msgs/msg/common_group.hpp"
 #include "vectornav_msgs/msg/gps_group.hpp"
@@ -28,25 +31,33 @@
 
 using namespace std::chrono_literals;
 
-class Vectornav : public rclcpp::Node
+class Vectornav : public rclcpp_lifecycle::LifecycleNode
 {
 public:
-  Vectornav() : Node("vectornav")
+  Vectornav() : rclcpp_lifecycle::LifecycleNode("vectornav")
   {
+    
+  }
+
+  using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
+
+  CallbackReturn
+  on_configure(const rclcpp_lifecycle::State & previous_state) {
+    
     //
     // Parameters
     //
     // TODO(Dereck): Add constraints to parameters
 
     // Device Port
-    auto port = declare_parameter<std::string>("port", "/dev/ttyUSB0");
+    port_ = declare_parameter<std::string>("port", "/dev/ttyUSB0");
 
     // Baud Rate
     // 5.2.6
     // 9600, 19200 38400 57600 115200
     // 128000 230400 460800 921600
-    auto baud = declare_parameter<int>("baud", 115200);
-    auto reconnect_ms = std::chrono::milliseconds(declare_parameter<int>("reconnect_ms", 500));
+    baud_ = declare_parameter<int>("baud", 115200);
+    reconnect_ms_ = std::chrono::milliseconds(declare_parameter<int>("reconnect_ms", 500));
 
     // Flag to adjust ROS time stamps
     adjustROSTimeStamp_ = declare_parameter<bool>("adjust_ros_timestamp", false);
@@ -154,14 +165,90 @@ public:
     pub_ins_ = this->create_publisher<vectornav_msgs::msg::InsGroup>("vectornav/raw/ins", 10);
     pub_gps2_ = this->create_publisher<vectornav_msgs::msg::GpsGroup>("vectornav/raw/gps2", 10);
 
+    pubs_.insert(pubs_.end(), {
+      pub_common_,
+      pub_time_,
+      pub_imu_,
+      pub_gps_,
+      pub_attitude_,
+      pub_ins_,
+      pub_gps2_
+    });
+
+    return CallbackReturn::SUCCESS;
+  }
+
+  CallbackReturn
+  on_activate(const rclcpp_lifecycle::State & previous_state) {
+    pub_common_->on_activate();
+    pub_time_->on_activate();
+    pub_imu_->on_activate();
+    pub_gps_->on_activate();
+    pub_attitude_->on_activate();
+    pub_ins_->on_activate();
+    pub_gps2_->on_activate();
+
     // Connect to the sensor
-    connect(port, baud);
+    if (!connect(port_, baud_)) {
+      return CallbackReturn::FAILURE;
+    }
 
     // Monitor Connection
-    if (reconnect_ms > 0ms) {
+    if (reconnect_ms_ > 0ms) {
       reconnect_timer_ =
-        create_wall_timer(reconnect_ms, std::bind(&Vectornav::reconnect_timer, this));
+        create_wall_timer(reconnect_ms_, std::bind(&Vectornav::reconnect_timer, this));
     }
+
+    return CallbackReturn::SUCCESS;
+  }
+
+  CallbackReturn
+  on_deactivate(const rclcpp_lifecycle::State & previous_state) {
+    reconnect_timer_->cancel();
+
+    try {
+      vs_.disconnect();
+    } catch (...) {
+      // Don't care
+    }
+
+    RCLCPP_INFO(get_logger(), "Disconnected from %s", port_.c_str());
+
+    pub_common_->on_deactivate();
+    pub_time_->on_deactivate();
+    pub_imu_->on_deactivate();
+    pub_gps_->on_deactivate();
+    pub_attitude_->on_deactivate();
+    pub_ins_->on_deactivate();
+    pub_gps2_->on_deactivate();
+
+    return CallbackReturn::SUCCESS;
+  }
+
+  CallbackReturn
+  on_cleanup(const rclcpp_lifecycle::State & previous_state) {
+    pub_common_.reset();
+    pub_time_.reset();
+    pub_imu_.reset();
+    pub_gps_.reset();
+    pub_attitude_.reset();
+    pub_ins_.reset();
+    pub_gps2_.reset();
+
+    return CallbackReturn::SUCCESS;
+  }
+
+  CallbackReturn
+  on_shutdown(const rclcpp_lifecycle::State & previous_state) {
+    pub_common_.reset();
+    pub_time_.reset();
+    pub_imu_.reset();
+    pub_gps_.reset();
+    pub_attitude_.reset();
+    pub_ins_.reset();
+    pub_gps2_.reset();
+
+    return CallbackReturn::SUCCESS;
   }
 
 private:
@@ -179,9 +266,7 @@ private:
 
     // Try to reconnect
     try {
-      std::string port = get_parameter("port").as_string();
-      int baud = get_parameter("baud").as_int();
-      if (!connect(port, baud)) {
+      if (!connect(port_, baud_)) {
         vs_.disconnect();
       }
     } catch (...) {
@@ -258,10 +343,14 @@ private:
     //
     // Sensor Configuration
     //
-
+    
     // Register Error Callback
-    vs_.registerErrorPacketReceivedHandler(this, Vectornav::ErrorPacketReceivedHandler);
-
+    try {
+      vs_.registerErrorPacketReceivedHandler(this, Vectornav::ErrorPacketReceivedHandler);
+    } catch (...) {
+      // Ignoring error, since it means handler is already registered
+    }
+    
     // TODO(Dereck): Move writeUserTag to Service Call?
     // 5.2.1
     // vs_.writeUserTag("");
@@ -398,8 +487,14 @@ private:
     } catch (const vn::sensors::sensor_error & e) {
       RCLCPP_WARN(get_logger(), "GPS initialization error (does your sensor have one?)");
     }
+
     // Register Binary Data Callback
-    vs_.registerAsyncPacketReceivedHandler(this, Vectornav::AsyncPacketReceivedHandler);
+    try {
+      vs_.registerAsyncPacketReceivedHandler(this, Vectornav::AsyncPacketReceivedHandler);
+    } catch (...) {
+      // Ignoring error, since it means handler is already registered
+    }
+
     // Connection Successful
     return true;
   }
@@ -1159,18 +1254,27 @@ private:
 
   /// VectorNav Sensor Handle
   vn::sensors::VnSensor vs_;
+  
+  /// Connection Parameters
+  std::string port_;
+  int baud_;
 
   /// Reconnection Timer
+  std::chrono::milliseconds reconnect_ms_;
   rclcpp::TimerBase::SharedPtr reconnect_timer_;
 
   /// Publishers
-  rclcpp::Publisher<vectornav_msgs::msg::CommonGroup>::SharedPtr pub_common_;
-  rclcpp::Publisher<vectornav_msgs::msg::TimeGroup>::SharedPtr pub_time_;
-  rclcpp::Publisher<vectornav_msgs::msg::ImuGroup>::SharedPtr pub_imu_;
-  rclcpp::Publisher<vectornav_msgs::msg::GpsGroup>::SharedPtr pub_gps_;
-  rclcpp::Publisher<vectornav_msgs::msg::AttitudeGroup>::SharedPtr pub_attitude_;
-  rclcpp::Publisher<vectornav_msgs::msg::InsGroup>::SharedPtr pub_ins_;
-  rclcpp::Publisher<vectornav_msgs::msg::GpsGroup>::SharedPtr pub_gps2_;
+  rclcpp_lifecycle::LifecyclePublisher<vectornav_msgs::msg::CommonGroup>::SharedPtr pub_common_;
+  rclcpp_lifecycle::LifecyclePublisher<vectornav_msgs::msg::TimeGroup>::SharedPtr pub_time_;
+  rclcpp_lifecycle::LifecyclePublisher<vectornav_msgs::msg::ImuGroup>::SharedPtr pub_imu_;
+  rclcpp_lifecycle::LifecyclePublisher<vectornav_msgs::msg::GpsGroup>::SharedPtr pub_gps_;
+  rclcpp_lifecycle::LifecyclePublisher<vectornav_msgs::msg::AttitudeGroup>::SharedPtr pub_attitude_;
+  rclcpp_lifecycle::LifecyclePublisher<vectornav_msgs::msg::InsGroup>::SharedPtr pub_ins_;
+  rclcpp_lifecycle::LifecyclePublisher<vectornav_msgs::msg::GpsGroup>::SharedPtr pub_gps2_;
+
+  std::vector<std::shared_ptr<rclcpp_lifecycle::LifecyclePublisherInterface>> pubs_;
+
+  
 
   /// ROS header time stamp adjustments
   double averageTimeDifference_{0};
@@ -1180,7 +1284,14 @@ private:
 int main(int argc, char * argv[])
 {
   rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<Vectornav>());
+  auto vectornav_node = std::make_shared<Vectornav>();
+
+  if (bool autostart = vectornav_node->declare_parameter<bool>("autostart", true)) {
+    vectornav_node->configure();
+    vectornav_node->activate();
+  }
+  
+  rclcpp::spin(vectornav_node->get_node_base_interface());
   rclcpp::shutdown();
   return 0;
 }
