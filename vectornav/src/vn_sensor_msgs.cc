@@ -446,7 +446,7 @@ private:
       case 3:
         array[0] = covariance[0];
         array[4] = covariance[1];
-        array[8] = covariance[3];
+        array[8] = covariance[2];
         break;
 
       case 9:
