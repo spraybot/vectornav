@@ -55,7 +55,7 @@ vectornav:
     gpsAntennaOffset:
       - 0.0
       - 0.0
-      - -0.172
+      - -0.18
 vn_sensor_msgs:
   ros__parameters:
     dynamic_uncertanity: true
