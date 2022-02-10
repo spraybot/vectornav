@@ -43,7 +43,7 @@ public:
 
   CallbackReturn
   on_configure(const rclcpp_lifecycle::State & previous_state) {
-    
+    RCLCPP_INFO(get_logger(), "Configuring Vectornav node");
     //
     // Parameters
     //
@@ -180,6 +180,7 @@ public:
 
   CallbackReturn
   on_activate(const rclcpp_lifecycle::State & previous_state) {
+    RCLCPP_INFO(get_logger(), "Activating Vectornav node");
     pub_common_->on_activate();
     pub_time_->on_activate();
     pub_imu_->on_activate();
@@ -188,6 +189,7 @@ public:
     pub_ins_->on_activate();
     pub_gps2_->on_activate();
 
+    RCLCPP_INFO(get_logger(), "Connecting to %s @ %d baud", port_.c_str(), baud_);
     // Connect to the sensor
     if (!connect(port_, baud_)) {
       return CallbackReturn::FAILURE;
@@ -204,6 +206,7 @@ public:
 
   CallbackReturn
   on_deactivate(const rclcpp_lifecycle::State & previous_state) {
+    RCLCPP_INFO(get_logger(), "Deactivating Vectornav node");
     reconnect_timer_->cancel();
 
     try {
