@@ -13,6 +13,13 @@
 #include <string>
 #include <vector>
 
+#if __linux__ || __CYGWIN__
+#include <fcntl.h>
+#include <linux/serial.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
+#endif
+
 // ROS2
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_lifecycle/lifecycle_node.hpp"
@@ -30,6 +37,9 @@
 #include "vn/util.h"
 
 using namespace std::chrono_literals;
+
+// These changes will stay effective until the device is unplugged
+// Assure that the serial port is set to async low latency in order to reduce delays and package pilup.
 
 class Vectornav : public rclcpp_lifecycle::LifecycleNode
 {
@@ -190,6 +200,11 @@ public:
     pub_gps2_->on_activate();
 
     RCLCPP_INFO(get_logger(), "Connecting to %s @ %d baud", port_.c_str(), baud_);
+
+    if (!optimize_serial_communication(port)) {
+      RCLCPP_WARN(get_logger(), "time of message delivery may be compromised!");
+    }
+
     // Connect to the sensor
     if (!connect(port_, baud_)) {
       return CallbackReturn::FAILURE;
@@ -255,6 +270,38 @@ public:
   }
 
 private:
+  /**
+   * set serial port to low latency async to avoid bunching up of callbacks
+   *
+   * \param port serial port path, eg /dev/ttyUSB0
+   * \return     true: OK, false: FAILURE
+   */
+#if __linux__ || __CYGWIN__
+  bool optimize_serial_communication(const std::string & portName)
+  {
+    const int portFd = open(portName.c_str(), O_RDWR | O_NOCTTY);
+
+    if (portFd == -1) {
+      RCLCPP_WARN(get_logger(), "Can't open port for optimization");
+      return false;
+    }
+
+    struct serial_struct serial;
+    ioctl(portFd, TIOCGSERIAL, &serial);
+    serial.flags |= ASYNC_LOW_LATENCY;
+    ioctl(portFd, TIOCSSERIAL, &serial);
+    close(portFd);
+    RCLCPP_INFO(get_logger(), "Set port to ASYNCY_LOW_LATENCY");
+    return (true);
+  }
+#elif
+  bool optimize_serial_communication(str::string portName)
+  {
+    RCLCPP_WARN(get_logger(), "Cannot set port to ASYNCY_LOW_LATENCY!");
+    return (true);
+  }
+#endif
+
   /**
    * Periodically check for connection drops and try to reconnect
    *
