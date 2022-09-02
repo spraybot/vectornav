@@ -31,7 +31,7 @@
 
 using namespace std::chrono_literals;
 
-class VnSensorMsgs : public rclcpp::Node
+class VnSensorMsgs: public rclcpp::Node
 {
   /// TODO(Dereck): Add _ned topics as an optional feature
   /// TODO(Dereck): Detect when a subscriber is connected but the required data is not provided by
@@ -42,15 +42,15 @@ public:
   VnSensorMsgs() : Node("vn_sensor_msgs")
   {
     // Parameters
-    declare_parameter<bool>("dynamic_uncertanity", false);
-    declare_parameter<bool>("gravity_removed_accel", false);
+    declare_parameter < bool > ("dynamic_uncertanity", false);
+    declare_parameter < bool > ("gravity_removed_accel", false);
 
-    declare_parameter<std::vector<double>>("orientation_covariance");
-    declare_parameter<std::vector<double>>("position_covariance");
-    declare_parameter<std::vector<double>>("velocity_covariance");
-    declare_parameter<std::vector<double>>("angular_velocity_covariance");
-    declare_parameter<std::vector<double>>("linear_acceleration_covariance");
-    declare_parameter<std::vector<double>>("magnetic_field_covariance");
+    declare_parameter < std::vector < double >> ("orientation_covariance");
+    declare_parameter < std::vector < double >> ("position_covariance");
+    declare_parameter < std::vector < double >> ("velocity_covariance");
+    declare_parameter < std::vector < double >> ("angular_velocity_covariance");
+    declare_parameter < std::vector < double >> ("linear_acceleration_covariance");
+    declare_parameter < std::vector < double >> ("magnetic_field_covariance");
 
     get_parameter("dynamic_uncertanity", dynamic_uncertanity_);
     get_parameter("gravity_removed_accel", gravity_removed_accel_);
@@ -66,59 +66,61 @@ public:
     //
     // TODO(Dereck): Only publish if data is available from the sensor?
     pub_time_startup_ =
-      this->create_publisher<sensor_msgs::msg::TimeReference>("vectornav/time_startup", 10);
+      this->create_publisher < sensor_msgs::msg::TimeReference > ("vectornav/time_startup", 10);
     pub_time_gps_ =
-      this->create_publisher<sensor_msgs::msg::TimeReference>("vectornav/time_gps", 10);
+      this->create_publisher < sensor_msgs::msg::TimeReference > ("vectornav/time_gps", 10);
     pub_time_syncin_ =
-      this->create_publisher<sensor_msgs::msg::TimeReference>("vectornav/time_syncin", 10);
+      this->create_publisher < sensor_msgs::msg::TimeReference > ("vectornav/time_syncin", 10);
     pub_time_pps_ =
-      this->create_publisher<sensor_msgs::msg::TimeReference>("vectornav/time_pps", 10);
-    pub_imu_ = this->create_publisher<sensor_msgs::msg::Imu>("vectornav/imu", 10);
-    pub_gnss_ = this->create_publisher<sensor_msgs::msg::NavSatFix>("vectornav/gnss/ins", 10);
-    pub_gnss_raw_ = this->create_publisher<sensor_msgs::msg::NavSatFix>("vectornav/gnss/raw", 10);
+      this->create_publisher < sensor_msgs::msg::TimeReference > ("vectornav/time_pps", 10);
+    pub_imu_ = this->create_publisher < sensor_msgs::msg::Imu > ("vectornav/imu", 10);
+    pub_gnss_ = this->create_publisher < sensor_msgs::msg::NavSatFix > ("vectornav/gnss/ins", 10);
+    pub_gnss_raw_ = this->create_publisher < sensor_msgs::msg::NavSatFix >
+      ("vectornav/gnss/raw", 10);
     pub_imu_uncompensated_ =
-      this->create_publisher<sensor_msgs::msg::Imu>("vectornav/imu_uncompensated", 10);
+      this->create_publisher < sensor_msgs::msg::Imu > ("vectornav/imu_uncompensated", 10);
     pub_magnetic_ =
-      this->create_publisher<sensor_msgs::msg::MagneticField>("vectornav/magnetic", 10);
+      this->create_publisher < sensor_msgs::msg::MagneticField > ("vectornav/magnetic", 10);
     pub_temperature_ =
-      this->create_publisher<sensor_msgs::msg::Temperature>("vectornav/temperature", 10);
+      this->create_publisher < sensor_msgs::msg::Temperature > ("vectornav/temperature", 10);
     pub_pressure_ =
-      this->create_publisher<sensor_msgs::msg::FluidPressure>("vectornav/pressure", 10);
-    pub_velocity_ = this->create_publisher<geometry_msgs::msg::TwistWithCovarianceStamped>(
+      this->create_publisher < sensor_msgs::msg::FluidPressure > ("vectornav/pressure", 10);
+    pub_velocity_ = this->create_publisher < geometry_msgs::msg::TwistWithCovarianceStamped > (
       "vectornav/velocity_body", 10);
     pub_pose_ =
-      this->create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>("vectornav/pose", 10);
+      this->create_publisher < geometry_msgs::msg::PoseWithCovarianceStamped >
+      ("vectornav/pose", 10);
 
     //
     // Subscribers
     //
     auto sub_vn_common_cb = std::bind(&VnSensorMsgs::sub_vn_common, this, std::placeholders::_1);
-    sub_vn_common_ = this->create_subscription<vectornav_msgs::msg::CommonGroup>(
+    sub_vn_common_ = this->create_subscription < vectornav_msgs::msg::CommonGroup > (
       "vectornav/raw/common", 10, sub_vn_common_cb);
 
     auto sub_vn_time_cb = std::bind(&VnSensorMsgs::sub_vn_time, this, std::placeholders::_1);
-    sub_vn_time_ = this->create_subscription<vectornav_msgs::msg::TimeGroup>(
+    sub_vn_time_ = this->create_subscription < vectornav_msgs::msg::TimeGroup > (
       "vectornav/raw/time", 10, sub_vn_time_cb);
 
     auto sub_vn_imu_cb = std::bind(&VnSensorMsgs::sub_vn_imu, this, std::placeholders::_1);
-    sub_vn_imu_ = this->create_subscription<vectornav_msgs::msg::ImuGroup>(
+    sub_vn_imu_ = this->create_subscription < vectornav_msgs::msg::ImuGroup > (
       "vectornav/raw/imu", 10, sub_vn_imu_cb);
 
     auto sub_vn_gps_cb = std::bind(&VnSensorMsgs::sub_vn_gps, this, std::placeholders::_1);
-    sub_vn_gps_ = this->create_subscription<vectornav_msgs::msg::GpsGroup>(
+    sub_vn_gps_ = this->create_subscription < vectornav_msgs::msg::GpsGroup > (
       "vectornav/raw/gps", 10, sub_vn_gps_cb);
 
     auto sub_vn_attitude_cb =
       std::bind(&VnSensorMsgs::sub_vn_attitude, this, std::placeholders::_1);
-    sub_vn_attitude_ = this->create_subscription<vectornav_msgs::msg::AttitudeGroup>(
+    sub_vn_attitude_ = this->create_subscription < vectornav_msgs::msg::AttitudeGroup > (
       "vectornav/raw/attitude", 10, sub_vn_attitude_cb);
 
     auto sub_vn_ins_cb = std::bind(&VnSensorMsgs::sub_vn_ins, this, std::placeholders::_1);
-    sub_vn_ins_ = this->create_subscription<vectornav_msgs::msg::InsGroup>(
+    sub_vn_ins_ = this->create_subscription < vectornav_msgs::msg::InsGroup > (
       "vectornav/raw/ins", 10, sub_vn_ins_cb);
 
     auto sub_vn_gps2_cb = std::bind(&VnSensorMsgs::sub_vn_gps2, this, std::placeholders::_1);
-    sub_vn_gps2_ = this->create_subscription<vectornav_msgs::msg::GpsGroup>(
+    sub_vn_gps2_ = this->create_subscription < vectornav_msgs::msg::GpsGroup > (
       "vectornav/raw/gps2", 10, sub_vn_gps2_cb);
   }
 
@@ -194,7 +196,7 @@ private:
       msg.orientation = toMsg(q_ned2enu * q);
 
       msg.angular_velocity = msg_in->angularrate;
-      
+
       if (!gravity_removed_accel_) {
         linear_accel_ = msg_in->accel;
       }
@@ -266,7 +268,7 @@ private:
         case vectornav_msgs::msg::GpsGroup::GPSFIX_SBAS:
           msg.status.status = sensor_msgs::msg::NavSatStatus::STATUS_SBAS_FIX;
           break;
-        default: 
+        default:
           msg.status.status = sensor_msgs::msg::NavSatStatus::STATUS_FIX;
           break;
       }
@@ -358,7 +360,7 @@ private:
       case vectornav_msgs::msg::GpsGroup::GPSFIX_SBAS:
         msg.status.status = sensor_msgs::msg::NavSatStatus::STATUS_SBAS_FIX;
         break;
-      default: 
+      default:
         msg.status.status = sensor_msgs::msg::NavSatStatus::STATUS_FIX;
         break;
     }
@@ -382,7 +384,8 @@ private:
   /** Convert VN attitude group data to ROS2 standard message types
    *
    */
-  void sub_vn_attitude(const vectornav_msgs::msg::AttitudeGroup::SharedPtr msg_in) {
+  void sub_vn_attitude(const vectornav_msgs::msg::AttitudeGroup::SharedPtr msg_in)
+  {
     if (dynamic_uncertanity_) {
       double r_u = deg2rad(msg_in->ypru.z);
       double p_u = deg2rad(msg_in->ypru.y);
@@ -431,7 +434,7 @@ private:
    * \param param_name Name of the parameter to read
    * \param array Array to fill
    */
-  void fill_covariance_from_param(std::string param_name, std::array<double, 9> & array) const
+  void fill_covariance_from_param(std::string param_name, std::array < double, 9 > & array) const
   {
     auto covariance = get_parameter(param_name).as_double_array();
 
@@ -461,46 +464,46 @@ private:
   }
 
   /// Convert from DEG to RAD
-  inline static double deg2rad(double in) { return in * M_PI / 180.0; }
+  inline static double deg2rad(double in) {return in * M_PI / 180.0;}
 
   //
   // Member Variables
   //
 
   /// Publishers
-  rclcpp::Publisher<sensor_msgs::msg::TimeReference>::SharedPtr pub_time_startup_;
-  rclcpp::Publisher<sensor_msgs::msg::TimeReference>::SharedPtr pub_time_gps_;
-  rclcpp::Publisher<sensor_msgs::msg::TimeReference>::SharedPtr pub_time_syncin_;
-  rclcpp::Publisher<sensor_msgs::msg::TimeReference>::SharedPtr pub_time_pps_;
-  rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr pub_imu_;
-  rclcpp::Publisher<sensor_msgs::msg::NavSatFix>::SharedPtr pub_gnss_, pub_gnss_raw_;
-  rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr pub_imu_uncompensated_;
-  rclcpp::Publisher<sensor_msgs::msg::MagneticField>::SharedPtr pub_magnetic_;
-  rclcpp::Publisher<sensor_msgs::msg::Temperature>::SharedPtr pub_temperature_;
-  rclcpp::Publisher<sensor_msgs::msg::FluidPressure>::SharedPtr pub_pressure_;
-  rclcpp::Publisher<geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr pub_velocity_;
-  rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pub_pose_;
+  rclcpp::Publisher < sensor_msgs::msg::TimeReference > ::SharedPtr pub_time_startup_;
+  rclcpp::Publisher < sensor_msgs::msg::TimeReference > ::SharedPtr pub_time_gps_;
+  rclcpp::Publisher < sensor_msgs::msg::TimeReference > ::SharedPtr pub_time_syncin_;
+  rclcpp::Publisher < sensor_msgs::msg::TimeReference > ::SharedPtr pub_time_pps_;
+  rclcpp::Publisher < sensor_msgs::msg::Imu > ::SharedPtr pub_imu_;
+  rclcpp::Publisher < sensor_msgs::msg::NavSatFix > ::SharedPtr pub_gnss_, pub_gnss_raw_;
+  rclcpp::Publisher < sensor_msgs::msg::Imu > ::SharedPtr pub_imu_uncompensated_;
+  rclcpp::Publisher < sensor_msgs::msg::MagneticField > ::SharedPtr pub_magnetic_;
+  rclcpp::Publisher < sensor_msgs::msg::Temperature > ::SharedPtr pub_temperature_;
+  rclcpp::Publisher < sensor_msgs::msg::FluidPressure > ::SharedPtr pub_pressure_;
+  rclcpp::Publisher < geometry_msgs::msg::TwistWithCovarianceStamped > ::SharedPtr pub_velocity_;
+  rclcpp::Publisher < geometry_msgs::msg::PoseWithCovarianceStamped > ::SharedPtr pub_pose_;
 
   /// Subscribers
-  rclcpp::Subscription<vectornav_msgs::msg::CommonGroup>::SharedPtr sub_vn_common_;
-  rclcpp::Subscription<vectornav_msgs::msg::TimeGroup>::SharedPtr sub_vn_time_;
-  rclcpp::Subscription<vectornav_msgs::msg::ImuGroup>::SharedPtr sub_vn_imu_;
-  rclcpp::Subscription<vectornav_msgs::msg::GpsGroup>::SharedPtr sub_vn_gps_;
-  rclcpp::Subscription<vectornav_msgs::msg::AttitudeGroup>::SharedPtr sub_vn_attitude_;
-  rclcpp::Subscription<vectornav_msgs::msg::InsGroup>::SharedPtr sub_vn_ins_;
-  rclcpp::Subscription<vectornav_msgs::msg::GpsGroup>::SharedPtr sub_vn_gps2_;
+  rclcpp::Subscription < vectornav_msgs::msg::CommonGroup > ::SharedPtr sub_vn_common_;
+  rclcpp::Subscription < vectornav_msgs::msg::TimeGroup > ::SharedPtr sub_vn_time_;
+  rclcpp::Subscription < vectornav_msgs::msg::ImuGroup > ::SharedPtr sub_vn_imu_;
+  rclcpp::Subscription < vectornav_msgs::msg::GpsGroup > ::SharedPtr sub_vn_gps_;
+  rclcpp::Subscription < vectornav_msgs::msg::AttitudeGroup > ::SharedPtr sub_vn_attitude_;
+  rclcpp::Subscription < vectornav_msgs::msg::InsGroup > ::SharedPtr sub_vn_ins_;
+  rclcpp::Subscription < vectornav_msgs::msg::GpsGroup > ::SharedPtr sub_vn_gps2_;
 
   // Parameters
   bool dynamic_uncertanity_;
   bool gravity_removed_accel_;
 
-  std::array<double, 9> orientation_covariance_{};
-  std::array<double, 9> position_covariance_{};
-  std::array<double, 9> velocity_covariance_{};
-  std::array<double, 9> angular_velocity_covariance_{};
-  std::array<double, 9> linear_acceleration_covariance_{};
-  std::array<double, 9> magnetic_field_covariance_{};
-  std::array<double, 9> gps_covariance_{};
+  std::array < double, 9 > orientation_covariance_ {};
+  std::array < double, 9 > position_covariance_ {};
+  std::array < double, 9 > velocity_covariance_ {};
+  std::array < double, 9 > angular_velocity_covariance_ {};
+  std::array < double, 9 > linear_acceleration_covariance_ {};
+  std::array < double, 9 > magnetic_field_covariance_ {};
+  std::array < double, 9 > gps_covariance_ {};
 
   /// TODO(Dereck): Find default covariance values
 
@@ -516,7 +519,7 @@ private:
 int main(int argc, char * argv[])
 {
   rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<VnSensorMsgs>());
+  rclcpp::spin(std::make_shared < VnSensorMsgs > ());
   rclcpp::shutdown();
   return 0;
 }
