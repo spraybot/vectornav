@@ -201,7 +201,7 @@ public:
 
     RCLCPP_INFO(get_logger(), "Connecting to %s @ %d baud", port_.c_str(), baud_);
 
-    if (!optimize_serial_communication(port)) {
+    if (!optimize_serial_communication(port_)) {
       RCLCPP_WARN(get_logger(), "time of message delivery may be compromised!");
     }
 

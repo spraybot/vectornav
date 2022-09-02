@@ -51,7 +51,7 @@ vectornav:
       insField: 0
       gps2Field: 0
     frame_id: imu_link
-    adjust_ros_timestamp: false
+    adjust_ros_timestamp: true
     gpsAntennaOffset:
       - 0.004
       - 0.0
