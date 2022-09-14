@@ -1333,7 +1333,7 @@ private:
   rclcpp_lifecycle::LifecyclePublisher < vectornav_msgs::msg::InsGroup > ::SharedPtr pub_ins_;
   rclcpp_lifecycle::LifecyclePublisher < vectornav_msgs::msg::GpsGroup > ::SharedPtr pub_gps2_;
 
-  std::vector < std::shared_ptr < rclcpp_lifecycle::LifecyclePublisherInterface >> pubs_;
+  std::vector < std::shared_ptr < rclcpp_lifecycle::SimpleManagedEntity >> pubs_;
 
 
   /// ROS header time stamp adjustments
