@@ -5,7 +5,7 @@ vectornav:
     baud: 921600
     reconnect_ms: 500
     AsyncDataOutputType: 0
-    AsyncDataOutputFrequency: 50
+    AsyncDataOutputFrequency: 0
     syncInMode: 3
     syncInEdge: 0
     syncInSkipFactor: 0
@@ -20,42 +20,46 @@ vectornav:
     serialChecksum: 1
     spiChecksum: 0
     errorMode: 1
-    BO1:
-      asyncMode: 1
-      rateDivisor: 16
-      commonField: 7675
-      timeField: 0
-      imuField: 0
-      gpsField: 0
-      attitudeField: 0
-      insField: 0
-      gps2Field: 0
-    BO2:
-      asyncMode: 3
-      rateDivisor: 16
-      commonField: 0
-      timeField: 0
-      imuField: 0
-      gpsField: 0
-      attitudeField: 328
-      insField: 1545
-      gps2Field: 0
-    BO3:
-      asyncMode: 3
-      rateDivisor: 160
-      commonField: 0
-      timeField: 0
-      imuField: 0
-      gpsField: 1593
-      attitudeField: 0
-      insField: 0
-      gps2Field: 0
     frame_id: imu_link
     adjust_ros_timestamp: true
     gpsAntennaOffset:
       - 0.004
       - 0.0
       - -0.205
+
+    BO1:
+      asyncMode: 1
+      rateDivisor: 2
+      commonField: 0
+      timeField: 611 # TimeStartup, TimeGps, TimePPs, TimeUTC, TimeStatus
+      imuField: 1280 # Mag, Angular Rate
+      gpsField: 24 # NumSats,Fix
+      attitudeField: 324 # Quaternion, LinearAccelBody, Ypru
+      insField: 1545 # InsStatus, PosLla, VelBody, PosU, VelU
+      gps2Field: 0
+  
+    BO2:
+      asyncMode: 0
+      rateDivisor: 16
+      commonField: 0
+      timeField: 0
+      imuField: 0
+      gpsField: 0
+      attitudeField: 0
+      insField: 0
+      gps2Field: 0
+
+    BO3:
+      asyncMode: 0
+      rateDivisor: 16
+      commonField: 0
+      timeField: 0
+      imuField: 0
+      gpsField: 0
+      attitudeField: 0
+      insField: 0
+      gps2Field: 0
+
 vn_sensor_msgs:
   ros__parameters:
     dynamic_uncertanity: true
