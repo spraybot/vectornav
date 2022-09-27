@@ -503,13 +503,18 @@ private:
 
     // GPS Antenna A Offset
     // 7.2.2
-    auto antennaAffset = get_parameter("gpsAntennaOffset").as_double_array();
-    auto gps_offset = vn::math::vec3f {
-      float(antennaAffset[0]), float(antennaAffset[1]), float(antennaAffset[2])
-    };
-    auto current_gps_offset = vs_.readGpsAntennaOffset();
-    if ((current_gps_offset - gps_offset).mag() > 1e-10) {
-      vs_.writeGpsAntennaOffset(gps_offset, true);
+    if (vs_.determineDeviceFamily() >= vn::sensors::VnSensor::VnSensor_Family_Vn200) {
+      auto antennaAffset = get_parameter("gpsAntennaOffset").as_double_array();
+      auto gps_offset = vn::math::vec3f {
+        float(antennaAffset[0]), float(antennaAffset[1]), float(antennaAffset[2])
+      };
+      auto current_gps_offset = vs_.readGpsAntennaOffset();
+      if ((current_gps_offset - gps_offset).mag() > 1e-10) {
+        vs_.writeGpsAntennaOffset(gps_offset, true);
+      }
+      gps_offset = vs_.readGpsAntennaOffset();
+      RCLCPP_INFO(
+        get_logger(), "GPS Offset     : (%f, %f, %f)", gps_offset[0], gps_offset[1], gps_offset[2]);
     }
 
     try {
@@ -518,13 +523,7 @@ private:
       auto gps_config = vs_.readGpsConfiguration();
       RCLCPP_INFO(get_logger(), "GPS Mode       : %d", gps_config.mode);
       RCLCPP_INFO(get_logger(), "GPS PPS Source : %d", gps_config.ppsSource);
-      /// TODO(Dereck): VnSensor::readGpsConfiguration() missing fields
-
-      // GPS Offset
-      // 8.2.2
-      gps_offset = vs_.readGpsAntennaOffset();
-      RCLCPP_INFO(
-        get_logger(), "GPS Offset     : (%f, %f, %f)", gps_offset[0], gps_offset[1], gps_offset[2]);
+      RCLCPP_INFO(get_logger(), "GPS Rate : %dHz", gps_config.rate);
 
       // GPS Compass Baseline
       // 8.2.3
