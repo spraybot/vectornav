@@ -8,35 +8,55 @@ from launch.actions import DeclareLaunchArgument
 from launch.conditions import UnlessCondition
 from launch.substitutions import LaunchConfiguration
 
-def generate_launch_description():
+import launch
+from launch_ros.actions import ComposableNodeContainer
+from launch_ros.descriptions import ComposableNode
 
+
+def generate_launch_description():
+    ld = LaunchDescription()
     this_dir = get_package_share_directory('vectornav')
 
+    # TODO: Add support for playback mode
     playback_mode = DeclareLaunchArgument('playback', default_value='False')
-    
-    start_vectornav_cmd = Node(
+
+    vectornav_node = ComposableNode(
         package='vectornav', 
-        executable='vectornav',
-        output='screen',
-        parameters=[os.path.join(this_dir, 'config', 'vectornav.yaml')],
-        condition=UnlessCondition(LaunchConfiguration("playback")))
+        plugin='Vectornav',
+        name='vectornav',
+        parameters=[os.path.join(this_dir, 'config', 'vectornav.yaml')])
+        # condition=UnlessCondition(LaunchConfiguration("playback")))
     
-    start_vectornav_sensor_msgs_cmd = Node(
+    vectornav_sensor_msgs_node = ComposableNode(
         package='vectornav', 
-        executable='vn_sensor_msgs',
-        output='screen',
+        plugin='VnSensorMsgs',
+        name='vn_sensor_msgs',
         parameters=[os.path.join(this_dir, 'config', 'vectornav.yaml')],
         remappings=[('vectornav/imu', 'imu/data'),
                     ('vectornav/gnss/ins', 'gps/fix'),
                     ('vectornav/gnss/raw', 'gps/fix/raw')])
 
-    # Create the launch description and populate
-    ld = LaunchDescription()
+    container = ComposableNodeContainer(
+            name='vectornav_container',
+            namespace='',
+            package='rclcpp_components',
+            executable='component_container',
+            composable_node_descriptions=[
+                vectornav_node, vectornav_sensor_msgs_node
+            ],
+            output='screen',
+    )
+    ld.add_action(container)
 
-    ld.add_action(playback_mode)
-    
-    if playback_mode:
-        ld.add_action(start_vectornav_cmd)
-    ld.add_action(start_vectornav_sensor_msgs_cmd)
+    lifecycle_manager = Node(
+        package='spraybot_lifecycle_manager',
+        executable='lifecycle_manager',
+        name='lifecycle_manager_sensors',
+        output='screen',
+        parameters=[
+            {'autostart': True},
+            {'node_names': ['vectornav'], 'bond_timeout': 0.0},
+        ])
+    ld.add_action(lifecycle_manager)
 
     return ld
