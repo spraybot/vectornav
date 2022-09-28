@@ -21,7 +21,7 @@
 #include "sensor_msgs/msg/nav_sat_fix.hpp"
 #include "sensor_msgs/msg/temperature.hpp"
 #include "sensor_msgs/msg/time_reference.hpp"
-#include "tf2_geometry_msgs/tf2_geometry_msgs.h"
+#include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 #include "vectornav_msgs/msg/attitude_group.hpp"
 #include "vectornav_msgs/msg/common_group.hpp"
 #include "vectornav_msgs/msg/gps_group.hpp"
@@ -39,7 +39,7 @@ class VnSensorMsgs: public rclcpp::Node
   /// TODO(Dereck): Improve Multi-message Syncronization
 
 public:
-  VnSensorMsgs() : Node("vn_sensor_msgs")
+  VnSensorMsgs(const rclcpp::NodeOptions & options) : Node("vn_sensor_msgs", options)
   {
     // Parameters
     declare_parameter < bool > ("dynamic_uncertanity", false);
@@ -128,10 +128,12 @@ private:
   /** Convert VN common group data to ROS2 standard message types
    *
    */
-  void sub_vn_common(const vectornav_msgs::msg::CommonGroup::SharedPtr msg_in)
-  {
-    // RCLCPP_INFO(get_logger(), "Frame ID: '%s'", msg_in->header.frame_id.c_str());
+  void sub_vn_common(const vectornav_msgs::msg::CommonGroup::SharedPtr msg_in) {}
 
+  /** Convert VN time group data to ROS2 standard message types
+   *
+   */
+  void sub_vn_time(const vectornav_msgs::msg::TimeGroup::SharedPtr msg_in) const {
     // Time Reference (Startup)
     {
       sensor_msgs::msg::TimeReference msg;
@@ -183,22 +185,24 @@ private:
 
       pub_time_pps_->publish(msg);
     }
+  }
 
+  /** Convert VN imu group data to ROS2 standard message types
+   *
+   */
+  void sub_vn_imu(const vectornav_msgs::msg::ImuGroup::SharedPtr msg_in) {
     // IMU
     {
       sensor_msgs::msg::Imu msg;
       msg.header = msg_in->header;
 
-      // Quaternion NED -> ENU
-      tf2::Quaternion q, q_ned2enu;
-      fromMsg(msg_in->quaternion, q);
-      q_ned2enu.setRPY(M_PI, 0.0, M_PI / 2);
-      msg.orientation = toMsg(q_ned2enu * q);
+      msg.orientation = quaternion_;
 
-      msg.angular_velocity = msg_in->angularrate;
+      angular_rate_ = msg_in->angularrate;
+      msg.angular_velocity = angular_rate_;
 
       if (!gravity_removed_accel_) {
-        linear_accel_ = msg_in->accel;
+        linear_accel_  = msg_in->accel;
       }
       msg.linear_acceleration = linear_accel_;
 
@@ -213,8 +217,8 @@ private:
     {
       sensor_msgs::msg::Imu msg;
       msg.header = msg_in->header;
-      msg.angular_velocity = msg_in->imu_rate;
-      msg.linear_acceleration = msg_in->imu_accel;
+      msg.angular_velocity = msg_in->uncompgyro;
+      msg.linear_acceleration = msg_in->uncompaccel;
 
       fill_covariance_from_param("angular_velocity_covariance", msg.angular_velocity_covariance);
       fill_covariance_from_param(
@@ -227,7 +231,7 @@ private:
     {
       sensor_msgs::msg::MagneticField msg;
       msg.header = msg_in->header;
-      msg.magnetic_field = msg_in->magpres_mag;
+      msg.magnetic_field = msg_in->mag;
 
       msg.magnetic_field_covariance = magnetic_field_covariance_;
 
@@ -238,7 +242,7 @@ private:
     {
       sensor_msgs::msg::Temperature msg;
       msg.header = msg_in->header;
-      msg.temperature = msg_in->magpres_temp;
+      msg.temperature = msg_in->temp;
 
       pub_temperature_->publish(msg);
     }
@@ -249,95 +253,12 @@ private:
       msg.header = msg_in->header;
 
       // Convert kPa to Pa
-      msg.fluid_pressure = msg_in->magpres_pres * 1e3;
+      msg.fluid_pressure = msg_in->pres * 1e3;
 
       pub_pressure_->publish(msg);
     }
 
-    // GNSS
-    {
-      sensor_msgs::msg::NavSatFix msg;
-      msg.header = msg_in->header;
-
-      // Status
-      switch (gps_fix_) {
-        case vectornav_msgs::msg::GpsGroup::GPSFIX_NOFIX:
-        case vectornav_msgs::msg::GpsGroup::GPSFIX_TIMEONLY:
-          msg.status.status = sensor_msgs::msg::NavSatStatus::STATUS_NO_FIX;
-          break;
-        case vectornav_msgs::msg::GpsGroup::GPSFIX_SBAS:
-          msg.status.status = sensor_msgs::msg::NavSatStatus::STATUS_SBAS_FIX;
-          break;
-        default:
-          msg.status.status = sensor_msgs::msg::NavSatStatus::STATUS_FIX;
-          break;
-      }
-
-      // Position
-      msg.latitude = msg_in->position.x;
-      msg.longitude = msg_in->position.y;
-      msg.altitude = msg_in->position.z;
-
-      // Covariance (Convert NED to ENU)
-      // Conversion currently not necessary since all values are the same
-      /// TODO(Dereck): Use DOP for better estimate?
-      msg.position_covariance = position_covariance_;
-
-      msg.position_covariance_type = sensor_msgs::msg::NavSatFix::COVARIANCE_TYPE_DIAGONAL_KNOWN;
-
-      pub_gnss_->publish(msg);
-    }
-
-    // Velocity
-    {
-      geometry_msgs::msg::TwistWithCovarianceStamped msg;
-      msg.header = msg_in->header;
-      msg.twist.twist.linear = ins_velbody_;
-      msg.twist.twist.angular = msg_in->angularrate;
-
-      msg.twist.covariance[0] = velocity_covariance_[0];
-      msg.twist.covariance[7] = velocity_covariance_[4];
-      msg.twist.covariance[14] = velocity_covariance_[8];
-      msg.twist.covariance[21] = angular_velocity_covariance_[0];
-      msg.twist.covariance[28] = angular_velocity_covariance_[4];
-      msg.twist.covariance[35] = angular_velocity_covariance_[8];
-      pub_velocity_->publish(msg);
-    }
-
-    // Pose (ECEF)
-    {
-      geometry_msgs::msg::PoseWithCovarianceStamped msg;
-      msg.header = msg_in->header;
-      msg.header.frame_id = "earth";
-      msg.pose.pose.position = ins_posecef_;
-
-      // Converts Quaternion in NED to ECEF
-      tf2::Quaternion q, q_enu2ecef, q_ned2enu;
-      q_ned2enu.setRPY(M_PI, 0.0, M_PI / 2);
-
-      auto latitude = deg2rad(msg_in->position.x);
-      auto longitude = deg2rad(msg_in->position.y);
-      q_enu2ecef.setRPY(0.0, latitude, longitude);
-
-      fromMsg(msg_in->quaternion, q);
-
-      msg.pose.pose.orientation = toMsg(q_ned2enu * q_enu2ecef * q);
-
-      /// TODO(Dereck): Pose Covariance
-
-      pub_pose_->publish(msg);
-    }
   }
-
-  /** Convert VN time group data to ROS2 standard message types
-   *
-   */
-  void sub_vn_time(const vectornav_msgs::msg::TimeGroup::SharedPtr msg_in) const {}
-
-  /** Convert VN imu group data to ROS2 standard message types
-   *
-   */
-  void sub_vn_imu(const vectornav_msgs::msg::ImuGroup::SharedPtr msg_in) const {}
 
   /** Convert VN gps group data to ROS2 standard message types
    *
@@ -397,6 +318,12 @@ private:
     if (gravity_removed_accel_) {
       linear_accel_ = msg_in->linearaccelbody;
     }
+
+    // Quaternion NED -> ENU
+    tf2::Quaternion q, q_ned2enu;
+      fromMsg(msg_in->quaternion, q);
+      q_ned2enu.setRPY(M_PI, 0.0, M_PI / 2);
+    quaternion_ = toMsg(q_ned2enu * q);
   }
 
   /** Convert VN ins group data to ROS2 standard message types
@@ -417,6 +344,80 @@ private:
       velocity_covariance_[0] = velu_sq;
       velocity_covariance_[4] = velu_sq;
       velocity_covariance_[8] = velu_sq;
+    }
+
+    // GNSS
+    {
+      sensor_msgs::msg::NavSatFix msg;
+      msg.header = msg_in->header;
+
+      // Status
+      switch (gps_fix_) {
+        case vectornav_msgs::msg::GpsGroup::GPSFIX_NOFIX:
+        case vectornav_msgs::msg::GpsGroup::GPSFIX_TIMEONLY:
+          msg.status.status = sensor_msgs::msg::NavSatStatus::STATUS_NO_FIX;
+          break;
+        case vectornav_msgs::msg::GpsGroup::GPSFIX_SBAS:
+          msg.status.status = sensor_msgs::msg::NavSatStatus::STATUS_SBAS_FIX;
+          break;
+        default:
+          msg.status.status = sensor_msgs::msg::NavSatStatus::STATUS_FIX;
+          break;
+      }
+
+      // Position
+      msg.latitude = msg_in->poslla.x;
+      msg.longitude = msg_in->poslla.y;
+      msg.altitude = msg_in->poslla.z;
+
+      // Covariance (Convert NED to ENU)
+      // Conversion currently not necessary since all values are the same
+      /// TODO(Dereck): Use DOP for better estimate?
+      msg.position_covariance = position_covariance_;
+
+      msg.position_covariance_type = sensor_msgs::msg::NavSatFix::COVARIANCE_TYPE_DIAGONAL_KNOWN;
+
+      pub_gnss_->publish(msg);
+    }
+
+    // Pose (ECEF)
+    {
+      geometry_msgs::msg::PoseWithCovarianceStamped msg;
+      msg.header = msg_in->header;
+      msg.header.frame_id = "earth";
+      msg.pose.pose.position = ins_posecef_;
+
+      // Converts Quaternion in NED to ECEF
+      tf2::Quaternion q, q_enu2ecef, q_ned2enu;
+      q_ned2enu.setRPY(M_PI, 0.0, M_PI / 2);
+
+      auto latitude = deg2rad(msg_in->poslla.x);
+      auto longitude = deg2rad(msg_in->poslla.y);
+      q_enu2ecef.setRPY(0.0, latitude, longitude);
+
+      fromMsg(quaternion_, q);
+
+      msg.pose.pose.orientation = toMsg(q_ned2enu * q_enu2ecef * q);
+
+      /// TODO(Dereck): Pose Covariance
+
+      pub_pose_->publish(msg);
+    }
+
+    // Velocity
+    {
+      geometry_msgs::msg::TwistWithCovarianceStamped msg;
+      msg.header = msg_in->header;
+      msg.twist.twist.linear = ins_velbody_;
+      msg.twist.twist.angular = angular_rate_;
+
+      msg.twist.covariance[0] = velocity_covariance_[0];
+      msg.twist.covariance[7] = velocity_covariance_[4];
+      msg.twist.covariance[14] = velocity_covariance_[8];
+      msg.twist.covariance[21] = angular_velocity_covariance_[0];
+      msg.twist.covariance[28] = angular_velocity_covariance_[4];
+      msg.twist.covariance[35] = angular_velocity_covariance_[8];
+      pub_velocity_->publish(msg);
     }
   }
 
@@ -511,6 +512,8 @@ private:
   uint8_t gps_fix_ = vectornav_msgs::msg::GpsGroup::GPSFIX_NOFIX;
   geometry_msgs::msg::Vector3 gps_posu_;
   geometry_msgs::msg::Vector3 linear_accel_;
+  geometry_msgs::msg::Vector3 angular_rate_;
+  geometry_msgs::msg::Quaternion quaternion_;
   geometry_msgs::msg::Vector3 ins_velbody_;
   geometry_msgs::msg::Point ins_posecef_;
 };
