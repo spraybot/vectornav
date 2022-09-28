@@ -44,7 +44,7 @@ using namespace std::chrono_literals;
 class Vectornav: public rclcpp_lifecycle::LifecycleNode
 {
 public:
-  Vectornav() : rclcpp_lifecycle::LifecycleNode("vectornav")
+  Vectornav(const rclcpp::NodeOptions & options) : rclcpp_lifecycle::LifecycleNode("vectornav", options)
   {
 
   }
@@ -1340,17 +1340,21 @@ private:
   bool adjustROSTimeStamp_ {false};
 };
 
-int main(int argc, char * argv[])
-{
-  rclcpp::init(argc, argv);
-  auto vectornav_node = std::make_shared < Vectornav > ();
+// int main(int argc, char * argv[])
+// {
+//   rclcpp::init(argc, argv);
+//   auto vectornav_node = std::make_shared < Vectornav > ();
 
-  if (bool autostart = vectornav_node->declare_parameter < bool > ("autostart", true)) {
-    vectornav_node->configure();
-    vectornav_node->activate();
-  }
+//   if (bool autostart = vectornav_node->declare_parameter < bool > ("autostart", true)) {
+//     vectornav_node->configure();
+//     vectornav_node->activate();
+//   }
 
-  rclcpp::spin(vectornav_node->get_node_base_interface());
-  rclcpp::shutdown();
-  return 0;
-}
+//   rclcpp::spin(vectornav_node->get_node_base_interface());
+//   rclcpp::shutdown();
+//   return 0;
+// }
+
+#include "rclcpp_components/register_node_macro.hpp"
+
+RCLCPP_COMPONENTS_REGISTER_NODE(Vectornav)

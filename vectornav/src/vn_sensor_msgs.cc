@@ -515,11 +515,6 @@ private:
   geometry_msgs::msg::Point ins_posecef_;
 };
 
-/// TODO(Dereck): convert to ros2 component
-int main(int argc, char * argv[])
-{
-  rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared < VnSensorMsgs > ());
-  rclcpp::shutdown();
-  return 0;
-}
+#include "rclcpp_components/register_node_macro.hpp"
+
+RCLCPP_COMPONENTS_REGISTER_NODE(VnSensorMsgs)
