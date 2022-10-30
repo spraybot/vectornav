@@ -23,9 +23,9 @@ vectornav:
     frame_id: imu_link
     adjust_ros_timestamp: true
     gpsAntennaOffset:
-      - 0.004
-      - 0.0
-      - -0.205
+      - -0.00185
+      - 0.175
+      - -0.291
 
     BO1:
       asyncMode: 1
@@ -35,9 +35,9 @@ vectornav:
       imuField: 1280 # Mag, Angular Rate
       gpsField: 24 # NumSats,Fix
       attitudeField: 324 # Quaternion, LinearAccelBody, Ypru
-      insField: 1545 # InsStatus, PosLla, VelBody, PosU, VelU
+      insField: 1547 # InsStatus, PosLla, VelBody, PosU, VelU
       gps2Field: 0
-  
+
     BO2:
       asyncMode: 0
       rateDivisor: 16
