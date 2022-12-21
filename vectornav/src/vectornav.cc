@@ -284,6 +284,8 @@ public:
       reconnect_timer_->cancel();
       reconnect_timer_.reset();
     }
+    vs_.unregisterErrorPacketReceivedHandler();
+    vs_.unregisterAsyncPacketReceivedHandler();
     vs_.disconnect();
   }
 
