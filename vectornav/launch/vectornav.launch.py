@@ -49,13 +49,13 @@ def generate_launch_description():
     ld.add_action(container)
 
     lifecycle_manager = Node(
-        package='spraybot_lifecycle_manager',
+        package='lifecycle_manager',
         executable='lifecycle_manager',
         name='lifecycle_manager_sensors',
         output='screen',
         parameters=[
             {'autostart': True},
-            {'node_names': ['vectornav'], 'bond_timeout': 0.0},
+            {'node_names': ['vectornav'], 'node_transitions': ['activate'], 'bond_timeout': 0.0},
         ])
     ld.add_action(lifecycle_manager)
 
