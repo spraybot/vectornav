@@ -222,7 +222,7 @@ public:
       std::bind(&Vectornav::handle_cal_accept, this, _1)
     );
 
-    if (!optimize_serial_communication(port)) {
+    if (!optimize_serial_communication(port_)) {
       RCLCPP_WARN(get_logger(), "time of message delivery may be compromised!");
     }
 

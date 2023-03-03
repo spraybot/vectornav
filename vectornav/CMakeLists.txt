@@ -33,7 +33,7 @@ add_subdirectory(vnproglib-1.2.0.0/cpp)
 
 # vectornav
 add_library(${PROJECT_NAME} SHARED src/vectornav.cc)
-ament_target_dependencies(${PROJECT_NAME} rclcpp rclcpp_components rclcpp_lifecycle geometry_msgs vectornav_msgs)
+ament_target_dependencies(${PROJECT_NAME} rclcpp rclcpp_action rclcpp_components rclcpp_lifecycle geometry_msgs vectornav_msgs)
 target_link_libraries(${PROJECT_NAME} vncxx )
 rclcpp_components_register_nodes(${PROJECT_NAME} "Vectornav")
 
