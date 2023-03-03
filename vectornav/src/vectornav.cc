@@ -671,13 +671,6 @@ private:
    * \return true for OK configuration, false for an error
   */
   bool configure_sensor(){
-    // Register Error Callback
-    try {
-      vs_.registerErrorPacketReceivedHandler(this, Vectornav::ErrorPacketReceivedHandler);
-    } catch(...) {
-      // Ignoring error, since it means handler is already registered
-    }
-
     // TODO(Dereck): Move writeUserTag to Service Call?
     // 5.2.1
     // vs_.writeUserTag("");
@@ -805,13 +798,6 @@ private:
       }
     } catch(const vn::sensors::sensor_error & e) {
       RCLCPP_WARN(get_logger(), "GPS initialization error (does your sensor have one?)");
-    }
-
-    // Register Binary Data Callback
-    try {
-      vs_.registerAsyncPacketReceivedHandler(this, Vectornav::AsyncPacketReceivedHandler);
-    } catch(...) {
-      // Ignoring error, since it means handler is already registered
     }
 
     // Connection Successful
